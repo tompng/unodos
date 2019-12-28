@@ -118,24 +118,28 @@ class Infinite < Enumerator
     return [min_cost, nil] if differential_cost >= min_cost
     result = nil
     vector_with_info = NAMED_BASES.map do |base|
-      vector = list.size.times.map do |i|
-        i < differential_level ? 0 : base.proc.call(i)
+      vector = (differential_level..list.size-1).map do |i|
+        base.proc.call(i)
       end
       [vector, vector.max, base]
     end
-    (1..differential_level).each do |level|
-      vector = [0] * differential_level + list.take(list.size - level).drop(differential_level - level)
-      vector_with_info.unshift [vector, vector.max, DifferentialBase.new(level)]
+    if differential_level > 0
+      (1..differential_level).each do |level|
+        vector = list.take(list.size - level).drop(differential_level - level)
+        vector_with_info << [vector, vector.max, DifferentialBase.new(level)]
+      end
+      differential = vector_with_info.pop
+      list = list.drop differential_level
     end
-    list = [0] * differential_level + list.drop(differential_level) if differential_level > 0
-    vector_with_info.combination list.size do |combination|
+    vector_with_info.combination list.size - (differential ? 1 : 0) do |combination|
+      combination.unshift differential if differential
       vectors = combination.map(&:first)
       mat = Matrix[*vectors.transpose]
       vs = lup_solve mat.lup, list
       next unless vs
       rs = combination.zip vs
       rs.each { |r| r[1] = 0 if (r[0][1] * r[1]).abs < TOLERANCE }
-      next if differential_level > 0 && rs[0][1] == 0
+      next if differential && rs[0][1] == 0
       cost = rs.sum { |(_, _, base), v| v == 0 ? 0 : base.cost } + differential_cost
       if cost < min_cost
         min_cost = cost
@@ -151,5 +155,9 @@ p Infinite.new([1.2,4.4,9.6])
 p Infinite.new([1.2,4.4,9.6]).take(10)
 p Infinite.new([1,1,2,3,5,8])
 p Infinite.new([1,1,2,3,5,8]).take(20)
-
-binding.irb
+p Infinite.new([1,2,0,1,3])
+time = Time.now
+10.times { p Infinite.new([1,2,0,1,3,5,9,7,1]) }
+# a[i]=97/31*a[i-1]+110165/992-33983/248*i+19303/186*i**2-2927/124*i**3+4261/1488*i**4-918/31*2**i+1025/2976*3**i
+p Time.now - time # 5.2
+# binding.irb
