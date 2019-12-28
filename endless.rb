@@ -32,13 +32,13 @@ class Infinite < Enumerator
     Base.new('2**i', 2) { |i| 2**i },
     Base.new('3**i', 2) { |i| 3**i },
     Base.new('4**i', 2) { |i| 4**i },
-    Base.new('1/2**i', 3) { |i| 1.0/2**i },
-    Base.new('1/3**i', 3) { |i| 1.0/3**i },
-    Base.new('1/4**i', 3) { |i| 1.0/4**i }
+    Base.new('1/2**i', 2) { |i| 1.0/2**i },
+    Base.new('1/3**i', 2) { |i| 1.0/3**i },
+    Base.new('1/4**i', 2) { |i| 1.0/4**i }
   ]
   TOLERANCE = 1e-12
-  DIFFERENTIAL_BASE_COST = 1
-  DIFFERENTIAL_LEVEL_COST = 3
+  DIFFERENTIAL_BASE_COST = 2
+  DIFFERENTIAL_LEVEL_COST = 2
 
   def lup_solve(lup, b)
     size = b.size
@@ -115,9 +115,9 @@ class Infinite < Enumerator
 
   def solve(list, differential_level, min_cost)
     differential_cost = differential_level * DIFFERENTIAL_LEVEL_COST
-    return [min_cost, nil] if differential_cost >= min_cost
+    return [min_cost, nil] if differential_level > 0 && differential_cost + DIFFERENTIAL_BASE_COST >= min_cost
     result = nil
-    vector_with_info = NAMED_BASES.map do |base|
+    vector_max_bases = NAMED_BASES.map do |base|
       vector = (differential_level..list.size-1).map do |i|
         base.proc.call(i)
       end
@@ -126,20 +126,14 @@ class Infinite < Enumerator
     if differential_level > 0
       (1..differential_level).each do |level|
         vector = list.take(list.size - level).drop(differential_level - level)
-        vector_with_info << [vector, vector.max, DifferentialBase.new(level)]
+        vector_max_bases.unshift [vector, vector.max, DifferentialBase.new(level)]
       end
-      differential = vector_with_info.pop
       list = list.drop differential_level
     end
-    vector_with_info.combination list.size - (differential ? 1 : 0) do |combination|
-      combination.unshift differential if differential
-      vectors = combination.map(&:first)
-      mat = Matrix[*vectors.transpose]
-      vs = lup_solve mat.lup, list
-      next unless vs
-      rs = combination.zip vs
+    recursive_solve vector_max_bases.map(&:first), list, differential_level > 0 do |vs, pos|
+      rs = vector_max_bases.values_at(*pos).zip(vs)
       rs.each { |r| r[1] = 0 if (r[0][1] * r[1]).abs < TOLERANCE }
-      next if differential && rs[0][1] == 0
+      next if differential_level > 0 && rs[0][1] == 0
       cost = rs.sum { |(_, _, base), v| v == 0 ? 0 : base.cost } + differential_cost
       if cost < min_cost
         min_cost = cost
@@ -147,6 +141,71 @@ class Infinite < Enumerator
       end
     end
     [min_cost, result]
+  end
+
+  def recursive_solve(vectors, bvector, first_required, &block)
+    size = vectors.size
+    out_size = bvector.size
+    skip_size = size - out_size
+    lup = Matrix[*vectors.transpose].lup
+    mat_l = lup.l
+    mat_u = lup.u.to_a
+    bvector = bvector.values_at(*lup.pivots)
+    out_size.times do |k|
+      (k + 1).upto(out_size - 1) do |i|
+        bvector[i] -= bvector[k] * mat_l[i, k]
+      end
+    end
+    solved = lambda do |u, selected|
+      b = bvector.dup
+      (selected.size - 1).downto 0 do |i|
+        j = selected[i]
+        next if b[i] == 0
+        return if u[i][j] == 0
+        b[i] = b[i].quo u[i][j]
+        i.times do |k|
+          b[k] -= b[i] * u[k][j]
+        end
+      end
+      block.call b, selected
+    end
+    solve = lambda do |u, selected, index|
+      return solved.call u, selected if selected.size == out_size
+      bvs = bvector.dup
+      aa=u.map(&:dup)
+      j = selected.size
+      restore_index = (j .. [index, out_size - 1].min).max_by do |k|
+        u[k][index].abs
+      end
+      u[j], u[restore_index] = u[restore_index], u[j]
+      bvector[j], bvector[restore_index] = bvector[restore_index], bvector[j]
+      restore = (j + 1 .. [index, out_size - 1].min).map do |k|
+        v = u[j][index] == 0 ? 0 : u[k][index].quo(u[j][index])
+        (index + 1 ... size).each do |l|
+          u[k][l] -= v * u[j][l]
+        end
+        bvector[k] -= v * bvector[j]
+        [k, v]
+      end
+      selected.push index
+      solve.call u, selected, index + 1
+      selected.pop
+      bvs2 = bvector.dup
+      restore.reverse_each do |k, v|
+        (index + 1 ... size).each do |l|
+          u[k][l] += v * u[j][l]
+        end
+        bvector[k] += v * bvector[j]
+      end
+      u[j], u[restore_index] = u[restore_index], u[j]
+      bvector[j], bvector[restore_index] = bvector[restore_index], bvector[j]
+      solve.call u, selected, index + 1 if size - index > out_size - selected.size
+    end
+    if first_required
+      solve.call mat_u, [0], 1
+    else
+      solve.call mat_u, [], 0
+    end
   end
 end
 
