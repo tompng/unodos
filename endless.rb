@@ -25,12 +25,10 @@ class Infinite < Enumerator
     Base.new('i**2') { |i| i**2 },
     Base.new('i**3') { |i| i**3 },
     Base.new('i**4') { |i| i**4 },
+    Base.new('i**5') { |i| i**5 },
     Base.new('2**i') { |i| 2**i },
-    Base.new('3**i') { |i| 3**i },
   ]
-  EPS = 1e-16
   TOLERANCE = 1e-12
-  DIFFERENTIAL_LEVEL_COST = 1
 
   def lup_solve(lup, b)
     size = b.size
@@ -38,38 +36,46 @@ class Infinite < Enumerator
     mat_l = lup.l
     mat_u = lup.u
     size.times do |k|
-      (k+1).upto(size-1) do |i|
-        m[i] -= m[k] * mat_l[i,k]
+      (k + 1).upto(size - 1) do |i|
+        m[i] -= m[k] * mat_l[i, k]
       end
     end
-    (size-1).downto(0) do |k|
+    (size - 1).downto(0) do |k|
       next if m[k] == 0
-      return nil if mat_u[k,k].zero?
-      m[k] = m[k].quo mat_u[k,k]
+      return nil if mat_u[k, k].zero?
+      m[k] = m[k].quo mat_u[k, k]
       k.times do |i|
-        m[i] -= m[k] * mat_u[i,k]
+        m[i] -= m[k] * mat_u[i, k]
       end
     end
     m
   end
 
+  attr_reader :cost
   def initialize(list)
     @list = list
-    min_cost = Float::INFINITY
+    min_cost = list.size + 1
     result = nil
     list.size.times do |level|
-      min_cost, res = solve list, level, min_cost
-      result = res || result
+      cost, res = solve list, level, min_cost
+      if cost && cost < min_cost
+        min_cost = cost
+        result = res
+      end
     end
     @cost = min_cost
     @elements = result.map do |(_, _, base), v|
+      v = v.to_i if v.to_i == v
       [base, v] if v != 0
     end.compact
   end
 
+  def self.[](*list)
+    new(list)
+  end
+
   def inspect
     es = @elements.map.with_index do |(base, v), i|
-      v = v.to_i if v.to_i == v
       sgn = v < 0 ? '-' : i == 0 ? '' : '+'
       v = v.abs
       name = base.name
@@ -106,8 +112,9 @@ class Infinite < Enumerator
   end
 
   def solve(list, differential_level, min_cost)
-    differential_cost = differential_level * DIFFERENTIAL_LEVEL_COST
-    return [min_cost, nil] if differential_level > 0 && differential_cost + 1 >= min_cost
+    base_cost = differential_level
+    max_items = min_cost - base_cost - 1
+    return nil if max_items <= 0
     result = nil
     vector_max_bases = NAMED_BASES.map do |base|
       vector = (differential_level..list.size-1).map do |i|
@@ -122,28 +129,62 @@ class Infinite < Enumerator
       end
       list = list.drop differential_level
     end
-    recursive_solve vector_max_bases.map(&:first), list, differential_level > 0 do |vs, pos|
+    select_solve vector_max_bases.map(&:first), list, max_items, differential_level > 0 do |vs, pos|
       rs = vector_max_bases.values_at(*pos).zip(vs)
-      rs.each { |r| r[1] = 0 if r[1].abs < EPS || (r[0][1] * r[1]).abs < TOLERANCE }
+      rs.each { |r| r[1] = 0 if (r[0][1] * r[1]).abs < TOLERANCE }
       next if differential_level > 0 && rs[0][1] == 0
-      cost = rs.sum { |(_, _, base), v| v == 0 ? 0 : 1 } + differential_cost
+      cost = rs.sum { |(_, _, base), v| v == 0 ? 0 : 1 } + base_cost
       if cost < min_cost
         min_cost = cost
         result = rs
       end
     end
-    [min_cost, result]
+    [min_cost, result] if result
+  end
+
+  def match_vector(vector, bvector)
+    vv = vb = bb = 0
+    vector.zip(bvector).each do |v, b|
+      vv += v * v
+      vb += v * b
+      bb += b * b
+    end
+    return nil if vv == 0
+    a = vb.quo vv
+    err = vv * a * a + bb - 2 * a * vb
+    [a, err]
+  end
+
+  def find_solve(vectors, bvector, &block)
+    (1...vectors.size).each do |i|
+      least_square_solve [vectors[0], vectors[i]], bvector do |vs, pos|
+        block.call vs, pos.map { |c| c == 1 ? i : 0 }
+      end
+    end
+  end
+
+  def select_solve(vectors, bvector, max_items, first_required, &block)
+    if first_required && max_items == 1
+      a, err = match_vector vectors[0], bvector
+      block.call [a], [0] if a && err < TOLERANCE
+    elsif vectors.size < bvector.size
+      least_square_solve vectors, bvector, &block
+    elsif first_required && max_items == 2
+      find_solve vectors, bvector, &block
+    elsif
+      recursive_solve vectors, bvector, first_required, &block
+    end
   end
 
   def least_square_solve(vectors, bvector, &block)
     mat = Matrix[*vectors.transpose]
     tmat = mat.transpose
     m = tmat * mat
-    b = 2 * tmat * Vector[*bvector]
+    b = tmat * Vector[*bvector]
     vs = lup_solve m.lup, b.to_a
     return unless vs
     max_diff = bvector.each_with_index.map do |bv, i|
-      (bv - vectors.zip(vs).sum { |a, v| v * a[i] } - bv).abs
+      (vectors.zip(vs).sum { |a, v| v * a[i] } - bv).abs
     end.max
     block.call vs, (0...vectors.size).to_a if max_diff < TOLERANCE
   end
