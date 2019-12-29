@@ -16,17 +16,17 @@ class Infinite < Enumerator
       @differential_level = level
     end
     def name
-      "a[i-#{differential_level}]"
+      "a[n-#{differential_level}]"
     end
   end
   NAMED_BASES = [
     Base.new('1') { |_| 1 },
-    Base.new('i') { |i| i },
-    Base.new('i**2') { |i| i**2 },
-    Base.new('i**3') { |i| i**3 },
-    Base.new('i**4') { |i| i**4 },
-    Base.new('i**5') { |i| i**5 },
-    Base.new('2**i') { |i| 2**i },
+    Base.new('n') { |n| n },
+    Base.new('n**2') { |n| n**2 },
+    Base.new('n**3') { |n| n**3 },
+    Base.new('n**4') { |n| n**4 },
+    Base.new('n**5') { |n| n**5 },
+    Base.new('2**n') { |n| 2**n },
   ]
   TOLERANCE = 1e-12
 
@@ -65,7 +65,7 @@ class Infinite < Enumerator
     end
     @cost = min_cost
     @elements = result.map do |(_, _, base), v|
-      v = v.to_i if v.to_i == v
+      v = v.real.to_i if v.real.to_i == v
       [base, v] if v != 0
     end.compact
   end
@@ -76,17 +76,18 @@ class Infinite < Enumerator
 
   def inspect
     es = @elements.map.with_index do |(base, v), i|
-      sgn = v < 0 ? '-' : i == 0 ? '' : '+'
-      v = v.abs
       name = base.name
       if name == '1'
         name = nil
       elsif v == 1
-        v = nil
+        v = ''
+      elsif v == -1
+        v = '-'
       end
-      sgn + [*v, *name].join('*')
+      s = [*v&.inspect, *name].join('*')
+      i == 0 || '-+'[s[0]] ? s : '+' + s
     end
-    "a[i]=#{es.join}"
+    "a[n]=#{es.join}"
   end
 
   def each(&block)
@@ -120,12 +121,12 @@ class Infinite < Enumerator
       vector = (differential_level..list.size-1).map do |i|
         base.proc.call(i)
       end
-      [vector, vector.max, base]
+      [vector, vector.map(&:abs).max, base]
     end
     if differential_level > 0
       (1..differential_level).each do |level|
         vector = list.take(list.size - level).drop(differential_level - level)
-        vector_max_bases.unshift [vector, vector.max, DifferentialBase.new(level)]
+        vector_max_bases.unshift [vector, vector.map(&:abs).max, DifferentialBase.new(level)]
       end
       list = list.drop differential_level
     end
