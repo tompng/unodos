@@ -1,4 +1,5 @@
 require "test_helper"
+require 'unodos/sugar'
 
 def assert_numbers(format, n: 5, start: nil, cost: nil, &block)
   a = [*start]
@@ -116,13 +117,25 @@ class UnodosTest < Minitest::Test
   end
 
   def test_inspect
-    inf = Unodos[3,4,5]
+    inf = Unodos[3, 4, 5]
     assert !inf.differential?
-    assert_equal 'a[n]=3+n', inf.rule
     assert_equal 'a[n]=3+n', inf.inspect
-    inf2 = Unodos[1,2,3,1,2,3]
+    inf2 = Unodos[1, 2, 3, 1, 2, 3]
     assert inf2.differential?
-    assert_equal 'a[n]=a[n-3]', inf2.rule
     assert_equal '[1, 2, 3, a[n]=a[n-3]]', inf2.inspect
+  end
+end
+
+class SugarTest < Minitest::Test
+  def test_before_using
+    assert [1, 2, 3, 4, 5], [1, 2, 3].infinite.take(5)
+    assert [1, 2, 3..], [1, 2, 3..].take(5)
+  end
+
+  using Unodos::Sugar
+  def test_using
+    assert [1, 2, 3], [1, 2, 3].take(5)
+    assert [1, 2, 3, 4, 5], [1, 2, 3..].take(5)
+    assert [1, 2, 3, 4, 5], [1, 2, 3...].take(5)
   end
 end
