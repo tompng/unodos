@@ -105,7 +105,6 @@ module Unodos::Solver
   end
 
   def self.recursive_solve(vectors, bvector, first_required, &block)
-    return least_square_solve vectors, bvector, &block if vectors.size < bvector.size
     size = vectors.size
     out_size = bvector.size
     skip_size = size - out_size
