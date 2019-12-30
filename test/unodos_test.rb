@@ -10,7 +10,7 @@ def assert_numbers(format, n: 5, start: nil, cost: nil, &block)
   (n + check).times { |i| a[i] ||= block.call i, a }
   inf = Unodos[*a.take(n)]
   b = inf.take(a.size)
-  assert_equal "a[n]=#{format}", inf.inspect if format
+  assert_equal "a[n]=#{format}", inf.rule if format
   assert_equal a, b
   assert_equal cost, inf.cost if cost
 end
