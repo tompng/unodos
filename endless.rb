@@ -74,18 +74,48 @@ class Infinite < Enumerator
     new(list)
   end
 
+  module Formatter
+
+    def self.format_rational(n, wrap: false)
+      return '0' if n == 0
+      return n.inspect unless n.is_a? Rational
+      return n.numerator.inspect if n.denominator == 1
+      s = "#{n.numerator.abs}/#{n.denominator}"
+      s = "(#{s})" if wrap
+      s = '-' + s if n < 0
+      s
+    end
+
+    def self.format(n, wrap: false)
+      return '0' if n == 0
+      if n.imag == 0
+        format_rational n.real, wrap: wrap
+      elsif n.real == 0
+        format_rational(n.imag, wrap: true) + 'i'
+      else
+        r = format_rational(n.real)
+        i = format_rational(n.imag, wrap: true)
+        s = r + (n.imag > 0 ? '+' : '') + i + 'i'
+        s = "(#{s})" if wrap
+        s
+      end
+    end
+  end
+
   def inspect
     es = @elements.map.with_index do |(base, v), i|
+      sign = i != 0
       name = base.name
-      if name == '1'
-        name = nil
+      s = if name == '1'
+        Formatter.format v
       elsif v == 1
-        v = ''
+        name
       elsif v == -1
-        v = '-'
+        '-' + name
+      else
+        Formatter.format(v, wrap: true) + '*' + name
       end
-      s = [*v&.inspect, *name].join('*')
-      i == 0 || '-+'[s[0]] ? s : '+' + s
+      i == 0 || '-+'.include?(s[0]) ? s : '+' + s
     end
     "a[n]=#{es.join}"
   end
@@ -153,7 +183,7 @@ class Infinite < Enumerator
     return nil if vv == 0
     a = vb.quo vv
     err = vv * a * a + bb - 2 * a * vb
-    [a, err]
+    [a, err.abs]
   end
 
   def find_solve(vectors, bvector, &block)
@@ -253,15 +283,3 @@ class Infinite < Enumerator
     end
   end
 end
-
-p Infinite.new([1,1,2])
-p Infinite.new([1.2,4.4,9.6])
-p Infinite.new([1.2,4.4,9.6]).take(10)
-p Infinite.new([1,1,2,3,5,8])
-p Infinite.new([1,1,2,3,5,8]).take(20)
-p Infinite.new([1,2,0,1,3])
-time = Time.now
-10.times { p Infinite.new([1,2,0,1,3,5,9,7,1]) }
-# a[i]=97/31*a[i-1]+110165/992-33983/248*i+19303/186*i**2-2927/124*i**3+4261/1488*i**4-918/31*2**i+1025/2976*3**i
-p Time.now - time # 5.2
-binding.irb
