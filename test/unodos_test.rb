@@ -114,4 +114,15 @@ class UnodosTest < Minitest::Test
     assert_numbers 'a[n-2]-a[n-1]+n**4', n: 20, start: [1, 0], cost: 5
     assert_numbers '3*a[n-2]+1+n**2', n: 20, start: [2, 1], cost: 5
   end
+
+  def test_inspect
+    inf = Unodos[3,4,5]
+    assert !inf.differential?
+    assert_equal 'a[n]=3+n', inf.rule
+    assert_equal 'a[n]=3+n', inf.inspect
+    inf2 = Unodos[1,2,3,1,2,3]
+    assert inf2.differential?
+    assert_equal 'a[n]=a[n-3]', inf2.rule
+    assert_equal '[1, 2, 3, a[n]=a[n-3]]', inf2.inspect
+  end
 end
