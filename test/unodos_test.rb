@@ -1,6 +1,5 @@
-require 'minitest'
-require 'minitest/autorun'
-require './endless'
+require "test_helper"
+
 def assert_numbers(format, n: 5, start: nil, cost: nil, &block)
   a = [*start]
   check = 4
@@ -9,7 +8,7 @@ def assert_numbers(format, n: 5, start: nil, cost: nil, &block)
     block = eval "->(n,a){#{code}}"
   end
   (n + check).times { |i| a[i] ||= block.call i, a }
-  inf = Infinite[*a.take(n)]
+  inf = Unodos[*a.take(n)]
   b = inf.take(a.size)
   assert_equal "a[n]=#{format}", inf.inspect if format
   assert_equal a, b
@@ -19,12 +18,12 @@ end
 def assert_fnumbers(n, &block)
   check = 4
   arr = (n + check).times.map(&block)
-  arr2 = Infinite[*arr.take(n)].take(n + check)
+  arr2 = Unodos[*arr.take(n)].take(n + check)
   max_diff = arr.zip(arr2).map { |a, b| (a - b).abs }.max
   assert max_diff < 1e-8
 end
 
-class TestFoo < MiniTest::Test
+class UnodosTest < Minitest::Test
   def test_level0
     assert_numbers '3', n: 1, cost: 1
     assert_numbers '4*n', n: 2, cost: 1
@@ -59,15 +58,15 @@ class TestFoo < MiniTest::Test
   end
 
   def test_cycle
-    assert_equal [1, 2].cycle.take(10), Infinite[1, 2, 1, 2, 1].take(10)
-    assert_equal [1, 2, 3].cycle.take(10), Infinite[1, 2, 3, 1, 2].take(10)
-    assert_equal [1, 9, 5, 1, 3, 8].cycle.take(10), Infinite[1, 9, 5, 1, 3, 8, 1, 9].take(10)
-    assert_equal [1, 9, 5, 1, 3, 8, 2, 18, 10, 2].cycle.take(10), Infinite[1, 9, 5, 1, 3, 8, 2, 18].take(10)
+    assert_equal [1, 2].cycle.take(10), Unodos[1, 2, 1, 2, 1].take(10)
+    assert_equal [1, 2, 3].cycle.take(10), Unodos[1, 2, 3, 1, 2].take(10)
+    assert_equal [1, 9, 5, 1, 3, 8].cycle.take(10), Unodos[1, 9, 5, 1, 3, 8, 1, 9].take(10)
+    assert_equal [1, 9, 5, 1, 3, 8, 2, 18, 10, 2].cycle.take(10), Unodos[1, 9, 5, 1, 3, 8, 2, 18].take(10)
   end
 
   def test_worst_case
     [4, 8, 16].each do |n|
-      assert_equal n, Infinite[*n.times.map { rand }].cost
+      assert_equal n, Unodos[*n.times.map { rand }].cost
     end
   end
 
@@ -85,7 +84,7 @@ class TestFoo < MiniTest::Test
     assert_numbers '(1+(1/2)i)*a[n-1]', start: [1], cost: 2
     assert_numbers '2i*a[n-1]+3/2+4i+(2/3+4i)*n**2', start: [1], cost: 4
   end
-  
+
   def test_float
     assert_fnumbers(12) { |i| (i + i ** 2) * 0.98 ** i + i ** 3 }
     assert_fnumbers(12) { |i| Math.sin(i) + 0.96 ** i * Math.cos(2.3 * i) }

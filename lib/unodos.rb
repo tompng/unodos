@@ -1,5 +1,12 @@
+require "unodos/version"
 require 'matrix'
-class Infinite < Enumerator
+module Unodos
+  def self.[](*list)
+    Unodos::Infinite.new(list)
+  end
+end
+
+class Unodos::Infinite < Enumerator
   class Base
     attr_reader :name, :proc
     def initialize(name, &block)
@@ -68,10 +75,6 @@ class Infinite < Enumerator
       v = v.real.to_i if v.real.to_i == v
       [base, v] if v != 0
     end.compact
-  end
-
-  def self.[](*list)
-    new(list)
   end
 
   module Formatter
