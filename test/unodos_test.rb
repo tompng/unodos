@@ -83,6 +83,7 @@ class UnodosTest < Minitest::Test
     assert_numbers '2i*n', cost: 1
     assert_numbers '(1+(1/2)i)*a[n-1]', start: [1], cost: 2
     assert_numbers '2i*a[n-1]+3/2+4i+(2/3+4i)*n**2', start: [1], cost: 4
+    assert_numbers '3+2i+(1+2i)*n', n: 20, cost: 2
   end
 
   def test_float

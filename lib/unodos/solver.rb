@@ -64,16 +64,10 @@ module Unodos::Solver
   end
 
   def self.match_vector(vector, bvector)
-    vv = vb = bb = 0
-    vector.zip(bvector).each do |v, b|
-      vv += v * v
-      vb += v * b
-      bb += b * b
-    end
-    return nil if vv == 0
-    a = vb.quo vv
-    err = vv * a * a + bb - 2 * a * vb
-    [a, err.abs]
+    v, b = vector.zip(bvector).max_by { |a,| a.abs }
+    a = b.quo v
+    err = vector.zip(bvector).map { |v, b| (v * a - b).abs }.max
+    a if err < TOLERANCE
   end
 
   def self.find_solve(vectors, bvector, &block)
@@ -86,8 +80,8 @@ module Unodos::Solver
 
   def self.select_solve(vectors, bvector, max_items, first_required, &block)
     if first_required && max_items == 1
-      a, err = match_vector vectors[0], bvector
-      block.call [a], [0] if a && err < TOLERANCE
+      a = match_vector vectors[0], bvector
+      block.call [a], [0] if a
     elsif vectors.size < bvector.size
       least_square_solve vectors, bvector, &block
     elsif first_required && max_items == 2
