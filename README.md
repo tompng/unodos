@@ -1,40 +1,29 @@
 # Unodos
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/unodos`. To experiment with that code, run `bin/console` for an interactive prompt.
+```ruby
+require 'unodos'
+Unodos[1,2,3].take(5) # => [1,2,3,4,5]
+Unodos[1,2,4].take(5) # => [1,2,4,8,16]
+Unodos[1,1,2,3,5].take(8) # => [1,1,2,3,5,8,13,21]
+Unodos[1,1,2,4,3,9,4,16,5].take(10) #=> [1,1,2,4,3,9,4,16,5,25]
 
-TODO: Delete this and the text above, and describe your gem
+# to see the generated rule
+Unodos[4,1,0,1,4,9].rule #=> "a[n]=4-4*n+n**2"
+Unodos[1,2,4,5,7,8].rule #=> "a[n]=-a[n-1]+3*n"
+```
 
 ## Installation
-
-Add this line to your application's Gemfile:
 
 ```ruby
 gem 'unodos'
 ```
 
-And then execute:
+## Syntax Sugar
 
-    $ bundle install
-
-Or install it yourself as:
-
-    $ gem install unodos
-
-## Usage
-
-TODO: Write usage instructions here
-
-## Development
-
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
-
-## Contributing
-
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/unodos.
-
-
-## License
-
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+```ruby
+require 'unodos/sugar' # will add Array#infinite
+[1,2,3].infinite.take(5) #=> [1,2,3,4,5]
+using Unodos::Sugar # will change [numbers, number..].some_method
+[1,2,3..].take(5) #=> [1,2,3,4,5]
+[1,1,2,3,5..].find_index(144) #=> 11
+```
