@@ -7,8 +7,10 @@ end
 
 module Unodos::Sugar
   def self.target_array?(array)
-    *items, last = array
-    last.is_a?(Range) && last.end.nil? && items.all?(Numeric)
+    last = array.last
+    return false unless array.size >= 2 && last.is_a?(Range) && last.end.nil?
+    *items, _ = array
+    items.all?(Numeric)
   end
   refine Array do
     %i[each map take find_index first take_while].each do |method|
@@ -17,7 +19,7 @@ module Unodos::Sugar
           *items, last = self
           Unodos::Infinite.new(items + [last.begin]).send(method, *args, **kwargs, &block)
         else
-          super
+          super(*args, **kwargs, &block)
         end
       end
     end
