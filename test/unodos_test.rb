@@ -130,14 +130,24 @@ end
 
 class SugarTest < Minitest::Test
   def test_before_using
-    assert [1, 2, 3, 4, 5], [1, 2, 3].infinite.take(5)
-    assert [1, 2, 3..], [1, 2, 3..].take(5)
+    assert_equal [1, 2, 3, 4, 5], [1, 2, 3].infinite.take(5)
+    assert_equal [1, 2, 3..], [1, 2, 3..].take(5)
   end
 
   using Unodos::Sugar
   def test_using
-    assert [1, 2, 3], [1, 2, 3].take(5)
-    assert [1, 2, 3, 4, 5], [1, 2, 3..].take(5)
-    assert [1, 2, 3, 4, 5], [1, 2, 3...].take(5)
+    assert_equal [1, 2, 3], [1, 2, 3].take(5)
+    assert_equal [1, 2, 3, 4, 5], [1, 2, 3..].take(5)
+    assert_equal [1, 2, 3, 4, 5], [1, 2, 3...].take(5)
+  end
+
+  def test_readme_examples
+    readme = File.read 'README.md'
+    pattern = /# *=>/
+    examples = readme.lines.grep pattern
+    examples.each do |ex|
+      code, expected = ex.split pattern
+      assert_equal eval(expected), eval(code)
+    end
   end
 end
