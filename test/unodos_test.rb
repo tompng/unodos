@@ -29,15 +29,16 @@ class UnodosTest < Minitest::Test
     assert_numbers '3', n: 1, cost: 1
     assert_numbers '4*n', n: 2, cost: 1
     assert_numbers '3*n**2', cost: 1
-    assert_numbers '3*2**n', cost: 1
-    assert_numbers '3+4*n', n: 3, cost: 2
-    assert_numbers '5-3*2**n', n: 3, cost: 2
-    assert_numbers '2*n**5+3*2**n', cost: 2
-    assert_numbers '2*n**5+3*2**n', cost: 2
+    assert_numbers '3*n**5', cost: 1
+    assert_numbers '1+n', n: 2, cost: 2
+    assert_numbers '3+4*n', n: 2, cost: 2
+    assert_numbers '5-2*n', n: 3, cost: 2
+    assert_numbers '5-3*n**5', n: 3, cost: 2
+    assert_numbers '2*n**4+3*n**5', cost: 2
     assert_numbers '3*n**2-2*n**3', cost: 2
     assert_numbers '2+4*n-n**2', cost: 3
-    assert_numbers '1-n**2+3*2**n', cost: 3
-    assert_numbers '3*n**2+4*n**5-2**n', cost: 3
+    assert_numbers '1-n**2+3*n**4', cost: 3
+    assert_numbers '3*n**2+4*n**3-n**5', cost: 3
   end
 
   def test_level1
@@ -46,14 +47,15 @@ class UnodosTest < Minitest::Test
     assert_numbers '3*a[n-1]-5', start: [2], cost: 3
     assert_numbers 'a[n-1]-n**2', start: [1], cost: 3
     assert_numbers '3*a[n-1]+3-n**2', start: [2], cost: 4
-    assert_numbers 'a[n-1]-3*n**2+2**n', start: [1], cost: 4
+    assert_numbers 'a[n-1]-3*n**2+n**5', start: [1], cost: 4
   end
 
   def test_level2
     assert_numbers '3*a[n-2]', start: [2, 1], cost: 3
     assert_numbers 'a[n-2]+a[n-1]', start: [1, 2], cost: 4
+    assert_numbers 'a[n-2]+2*n', start: [1, 0], cost: 4
     assert_numbers 'a[n-2]-n**3', start: [1, 0], cost: 4
-    assert_numbers '3*a[n-2]-2**n', start: [2, 1], cost: 4
+    assert_numbers '3*a[n-2]-n**5', start: [2, 1], cost: 4
     assert_numbers '5*a[n-2]-2*a[n-1]+3*n**2', n: 6, start: [2, 1], cost: 5
     assert_numbers '3*a[n-2]+2-n**5', n: 6, start: [2, 1], cost: 5
   end
@@ -95,17 +97,17 @@ class UnodosTest < Minitest::Test
   def test_minimize
     assert_numbers 'n**4', n: 20, cost: 1
     assert_numbers '2-3*n', n: 20, cost: 2
-    assert_numbers '2*n**5-2**n', n: 20, cost: 2
-    assert_numbers '-3*n**3+2*n**5', n: 20, cost: 2
-    assert_numbers '3-n**4+2**n', n: 20, cost: 3
-    assert_numbers '2+n-n**5+2**n', n: 20, cost: 4
-    assert_numbers '1+n+n**2+n**3+n**4+n**5+2**n', n: 20, cost: 7
+    assert_numbers '2*n**4-n**5', n: 20, cost: 2
+    assert_numbers '-3*n**3+2*n**4', n: 20, cost: 2
+    assert_numbers '3-n**4+n**5', n: 20, cost: 3
+    assert_numbers '2+n-n**4+n**5', n: 20, cost: 4
+    assert_numbers '1+n+n**2+n**3+n**4+n**5', n: 20, cost: 6
   end
 
   def test_level1_minimize
     assert_numbers '3*a[n-1]', n: 20, start: [1], cost: 2
     assert_numbers 'a[n-1]+n**4', n: 20, start: [1], cost: 3
-    assert_numbers '3*a[n-1]+2*n**2-2**n', n: 20, start: [1], cost: 4
+    assert_numbers '3*a[n-1]+2*n**2-n**5', n: 20, start: [1], cost: 4
   end
 
   def test_level2_minimize
