@@ -85,7 +85,7 @@ module Unodos::Solver
       least_square_solve vectors, bvector, &block
     elsif first_required && max_items == 2
       find_solve vectors, bvector, &block
-    elsif
+    else
       recursive_solve vectors, bvector, first_required, &block
     end
   end
@@ -106,7 +106,6 @@ module Unodos::Solver
   def self.recursive_solve(vectors, bvector, first_required, &block)
     size = vectors.size
     out_size = bvector.size
-    skip_size = size - out_size
     lup = Matrix[*vectors.transpose].lup
     mat_l = lup.l
     mat_u = lup.u.to_a

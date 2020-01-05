@@ -24,7 +24,6 @@ class Unodos::Infinite < Enumerator
 
   def rule
     es = @elements.map.with_index do |(base, v), i|
-      sign = i != 0
       name = base.to_s
       s = if name == '1'
         Unodos::Formatter.format v
