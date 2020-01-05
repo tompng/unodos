@@ -7,8 +7,7 @@ module Unodos::Solver
     Unodos::NamedBase.new('n**2') { |n| n**2 },
     Unodos::NamedBase.new('n**3') { |n| n**3 },
     Unodos::NamedBase.new('n**4') { |n| n**4 },
-    Unodos::NamedBase.new('n**5') { |n| n**5 },
-    Unodos::NamedBase.new('2**n') { |n| 2**n },
+    Unodos::NamedBase.new('n**5') { |n| n**5 }
   ]
 
   def self.lup_solve(lup, b)
